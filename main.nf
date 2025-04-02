@@ -1,3 +1,4 @@
+include { samtools_sort }                                                  from './modules/samtools.nf'
 include { rmats_run; rmats_parse_coords; rmats_filter }                    from './modules/rmats.nf'
 include { whippet_index; whippet_quant; whippet_delta; whippet_filter }    from './modules/whippet.nf'
 include { overlap; overlap_filter }                                        from './modules/rmappet.nf'
