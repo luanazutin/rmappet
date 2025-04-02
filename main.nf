@@ -3,7 +3,7 @@ include { rmats_run; rmats_parse_coords; rmats_filter }                    from 
 include { whippet_index; whippet_quant; whippet_delta; whippet_filter }    from './modules/whippet.nf'
 include { overlap; overlap_filter }                                        from './modules/rmappet.nf'
 
-// Funcao  para combinar amostras (mantida do original)
+// Functions
 def combinations(channel) {
     channel
         .groupTuple(by: 0)
@@ -23,43 +23,33 @@ def combinations(channel) {
         }
 }
 
-// Canais de entrada (modificados para BAMs)
+// Channels
 Channel.fromPath( params.samplesheet )
-    .set { samplesheet_ch }
-Channel.fromPath( params.genome )
-    .set{ genome_ch }
-Channel.fromPath( params.annotation )
-    .set{ annotation_ch }
-
-// Ler o samplesheet e espera uma coluna "bam" (nao mais "read1"/"read2")
-samplesheet_ch.splitCsv( header: true )
+    .splitCsv( header: true )
     .take( params.dev ? 1: -1 )
-    .map{ row -> [
-            row.sample_id, file( row.bam ), row.condition  // Agora usa BAM!
-    ]}
+    .map{ row -> [ row.sample_id, file( row.bam ), row.condition ] }
     .set { bam_ch }
 
-// Workflow modificado (sem fastp/STAR/samtools)
-workflow {
-    // rMATS (usa BAMs diretamente)
-    bam_ch
-        .map { it -> [ it[2], it[1], it[0] ] }  // [condition, bam, sample_id]
-        .set { rmats_ch }
+Channel.fromPath( params.annotation )
+    .set { annotation_ch }
 
-    rmats_run( combinations( rmats_ch ), annotation_ch.collect() )
+// Workflow 
+workflow {
+    // Ordenar BAMs (se necessário)
+    samtools_sort( bam_ch )
+    
+    // rMATS (análise de splicing alternativo)
+    rmats_run( combinations(samtools_sort.out.bam.map{ it -> [ it[2], it[1][0], it[0] ] }), annotation_ch.collect() )
     rmats_parse_coords( rmats_run.out.data )
     rmats_filter( rmats_parse_coords.out.data )
-
-    // Whippet (ainda precisa do indice, mas ignora alinhamento)
-    whippet_index( genome_ch, annotation_ch )
-    whippet_quant( whippet_index.out.index.collect(), bam_ch )  // Usa BAMs
-    whippet_quant.out.psi
-        .map { it -> [ it[2], it[1], it[0] ] }
-        .set { whippet_ch }
-    whippet_delta( combinations( whippet_ch ) )
+    
+    // Whippet (análise de eventos de splicing)
+    whippet_index( annotation_ch )
+    whippet_quant( whippet_index.out.index.collect(), samtools_sort.out.bam.map{ it -> [ it[0], it[1][0] ] } )
+    whippet_delta( combinations(whippet_quant.out.psi.map{ it -> [ it[2], it[1], it[0] ] }) 
     whippet_filter( whippet_delta.out.delta )
-
-    // Overlap (mesmo do original)
+    
+    // Overlap (integração rMATS + Whippet)
     rmats_parse_coords.out.data
         .map { it -> [ it[0], it[1] ] }
         .join( whippet_delta.out.delta, by: 0 )
