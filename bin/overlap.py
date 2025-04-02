@@ -76,7 +76,7 @@ for idx, row in rmats_results_filter.iterrows():
     strand = row.strand
     chr, start, end = split_coord(row.coord)
     ranges[chr][strand].add(
-        (start, end, {"gene": row.gene_symbol, "type": row.type, "flank": row.flank})
+        (start, end, {"transcript": row.gene_symbol, "type": row.type, "flank": row.flank})
     )
 
 
@@ -132,14 +132,14 @@ main_overlap_merge = pd.merge(
 
 main_overlap_sliced = main_overlap_merge[
     """
-gene_id gene_symbol strand type rmats_flank rmats_coord p_value fdr inc_level_1 
+transcript_id gene_symbol strand type rmats_flank rmats_coord p_value fdr inc_level_1 
 inc_level_2 inc_level_diff inc_form_len skip_form_len 
 whippet_coord Probability Complexity Entropy Psi_A Psi_B DeltaPsi
 """.split()
 ]
 
 main_overlap_sliced.columns = """
-gene_id gene_symbol strand type rmats_flank rmats_coord rmats_p_value rmats_fdr rmats_inc_level_1 
+transcript_id gene_symbol strand type rmats_flank rmats_coord rmats_p_value rmats_fdr rmats_inc_level_1 
 rmats_inc_level_2 rmats_inc_level_diff rmats_inc_form_len rmats_skip_form_len 
 whippet_coord whippet_Probability whippet_Complexity whippet_Entropy whippet_Psi_A whippet_Psi_B whippet_DeltaPsi
 """.lower().split()
