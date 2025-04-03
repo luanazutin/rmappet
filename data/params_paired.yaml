@@ -1,7 +1,0 @@
-dev: false
-samplesheet: data/samplesheet_paired.csv
-genome: data/genome/genome.fa
-annotation: data/genome/annotation.gtf
-outputdir: output
-readlen: 100
-libtype: paired
