@@ -1,4 +1,3 @@
-include { samtools_sort }                                                  from './modules/samtools.nf'
 include { rmats_run; rmats_parse_coords; rmats_filter }                    from './modules/rmats.nf'
 include { whippet_index; whippet_quant; whippet_delta; whippet_filter }    from './modules/whippet.nf'
 include { overlap; overlap_filter }                                        from './modules/rmappet.nf'
@@ -35,8 +34,6 @@ Channel.fromPath( params.annotation )
 
 // Workflow 
 workflow {
-    // Ordenar BAMs (se necessário)
-    samtools_sort( bam_ch )
     
     // rMATS (análise de splicing alternativo)
     rmats_run( combinations(samtools_sort.out.bam.map{ it -> [ it[2], it[1][0], it[0] ] }), annotation_ch.collect() )
